@@ -76,6 +76,7 @@ In another terminal:
 ```bash
 npm run smoke
 npm run bench
+npm run bench:matrix
 npm run cache
 ```
 
@@ -85,6 +86,7 @@ Useful benchmark knobs:
 CONNECTIONS=50 DURATION=15 npm run bench
 NESTED_USERS=50 NESTED_POSTS=10 NESTED_COMMENTS=5 npm run bench
 FLAT_USERS=200 npm run bench
+CONNECTIONS=10 DURATION=5 npm run bench:matrix
 ```
 
 ## API examples
@@ -175,6 +177,21 @@ should use batched methods such as `getPostsByUserIds` and
 `getCommentsByPostIds`; the naive path should use many per-object calls such as
 `getPostsByUserId` and `getCommentsByPostId`.
 
+## Benchmark matrix
+
+For a broader sweep across nested fan-out sizes, run:
+
+```bash
+npm run bench:matrix
+```
+
+This executes RPC, GraphQL with DataLoader, and naive GraphQL against several
+nested response sizes. It prints a markdown table and also writes a timestamped
+report to `results/matrix-*.md`.
+
+Use this when you want to see how the relative curves change as fan-out grows,
+rather than only comparing one fixed nested query shape.
+
 ## Cache experiment
 
 Run:
@@ -236,6 +253,7 @@ error.
 - `npm start` — run compiled server
 - `npm run smoke` — quick endpoint/security sanity check
 - `npm run bench` — run autocannon comparisons
+- `npm run bench:matrix` — sweep nested fan-out sizes and write a report
 - `npm run cache` — demonstrate REST ETag vs GraphQL POST no-store behavior
 
 ## Project layout
@@ -247,6 +265,7 @@ src/httpCache.ts       small JSON + ETag helper for REST/RPC responses
 src/queries.ts         benchmark GraphQL query strings
 src/server.ts          Express server and REST/RPC/GraphQL routes
 scripts/bench.ts       autocannon benchmark runner
+scripts/matrix.ts      multi-scenario nested benchmark matrix
 scripts/cache-demo.ts  REST ETag vs GraphQL POST cache demo
 scripts/smoke.ts       quick sanity/security check
 ```

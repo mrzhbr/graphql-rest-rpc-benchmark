@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "bench": "tsx scripts/bench.ts",
+    "bench:matrix": "tsx scripts/matrix.ts",
     "cache": "tsx scripts/cache-demo.ts",
     "smoke": "tsx scripts/smoke.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
