@@ -104,6 +104,10 @@ Start Postgres:
 npm run db:up
 ```
 
+Security note: the Compose file uses Postgres trust auth for convenience, but
+binds the database port to `127.0.0.1` only. Do not change it to a public bind
+address unless you also configure real credentials/firewalling.
+
 If port 5432 is already in use, choose another host port and point the app at
 it:
 
@@ -152,7 +156,9 @@ rsync -az --delete --exclude node_modules --exclude .git \
 ssh frankenthal 'cd ~/graphql-rest-rpc-benchmark && zsh -lc "npm install && POSTGRES_PORT=55432 npm run db:up && DATABASE_URL=postgresql://benchmark@localhost:55432/graphql_benchmark SCALE=medium npm run db:seed && DATABASE_URL=postgresql://benchmark@localhost:55432/graphql_benchmark npm run bench:db"'
 ```
 
-Use `potsdam` instead of `frankenthal` if that host is free.
+Use `potsdam` instead of `frankenthal` if that host is free. The benchmark
+`DATABASE_URL` examples contain no password; they rely on the local-only trusted
+Postgres container above.
 
 ## API examples
 
