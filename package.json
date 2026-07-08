@@ -6,9 +6,14 @@
   "description": "Hands-on REST/RPC vs GraphQL benchmark playground for flat, nested fan-out, caching, and auth-surface comparisons.",
   "scripts": {
     "dev": "tsx src/server.ts",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:seed": "tsx scripts/seed-postgres.ts",
+    "db:dev": "tsx src/dbServer.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "bench": "tsx scripts/bench.ts",
+    "bench:db": "tsx scripts/bench-db.ts",
     "bench:matrix": "tsx scripts/matrix.ts",
     "cache": "tsx scripts/cache-demo.ts",
     "smoke": "tsx scripts/smoke.ts",
@@ -18,12 +23,14 @@
     "autocannon": "8.0.0",
     "dataloader": "2.2.3",
     "express": "5.2.1",
-    "graphql": "16.11.0"
+    "graphql": "16.11.0",
+    "pg": "8.22.0"
   },
   "devDependencies": {
     "@types/autocannon": "7.12.7",
     "@types/express": "5.0.6",
     "@types/node": "26.1.0",
+    "@types/pg": "8.20.0",
     "tsx": "4.23.0",
     "typescript": "6.0.3"
   },

@@ -42,9 +42,13 @@ machine, with `CONNECTIONS=25` and `DURATION=8`, it produced:
 
 Interpretation caveat: because this benchmark uses an in-memory store,
 DataLoader can be slower than naive resolvers. That is useful: it separates
-DataLoader's batching benefit from its Promise/batching overhead. With real
-network or database I/O, the batched GraphQL path should usually improve much
-more relative to naive per-object resolver calls.
+DataLoader's batching benefit from its Promise/batching overhead.
+
+A Postgres-backed run on `potsdam` with 100k users, 1M posts, and 5M comments is
+saved in [`benchmark-postgres.md`](benchmark-postgres.md). In that run, flat
+GraphQL was close to flat REST because DB I/O dominated, while DataLoader made
+nested GraphQL about 7.7x faster than naive nested GraphQL. The fixed RPC fetch
+plan still won for the one bespoke nested shape.
 
 ## Requirements
 
@@ -88,6 +92,67 @@ NESTED_USERS=50 NESTED_POSTS=10 NESTED_COMMENTS=5 npm run bench
 FLAT_USERS=200 npm run bench
 CONNECTIONS=10 DURATION=5 npm run bench:matrix
 ```
+
+## Postgres benchmark mode
+
+The in-memory benchmark intentionally isolates GraphQL execution overhead. To
+see the effect of real relational I/O, use the Postgres mode.
+
+Start Postgres:
+
+```bash
+npm run db:up
+```
+
+If port 5432 is already in use, choose another host port and point the app at
+it:
+
+```bash
+POSTGRES_PORT=55432 npm run db:up
+DATABASE_URL=postgresql://benchmark@localhost:55432/graphql_benchmark npm run db:seed
+```
+
+Seed a synthetic relational data set:
+
+```bash
+npm run db:seed
+```
+
+Default `SCALE=small` creates 10k users, 100k posts, and 500k comments. Larger
+presets are available:
+
+```bash
+SCALE=medium npm run db:seed  # 100k users, 1M posts, 5M comments
+SCALE=large npm run db:seed   # 1M users, 10M posts, 50M comments
+```
+
+Or choose exact values:
+
+```bash
+USERS=200000 POSTS_PER_USER=10 COMMENTS_PER_POST=5 npm run db:seed
+```
+
+Run the Postgres-backed API on port 4001:
+
+```bash
+npm run db:dev
+```
+
+Run the Postgres benchmark:
+
+```bash
+npm run bench:db
+```
+
+Useful remote-compute flow:
+
+```bash
+rsync -az --delete --exclude node_modules --exclude .git \
+  --exclude dist --exclude results ./ frankenthal:~/graphql-rest-rpc-benchmark/
+ssh frankenthal 'cd ~/graphql-rest-rpc-benchmark && zsh -lc "npm install && POSTGRES_PORT=55432 npm run db:up && DATABASE_URL=postgresql://benchmark@localhost:55432/graphql_benchmark SCALE=medium npm run db:seed && DATABASE_URL=postgresql://benchmark@localhost:55432/graphql_benchmark npm run bench:db"'
+```
+
+Use `potsdam` instead of `frankenthal` if that host is free.
 
 ## API examples
 
@@ -247,12 +312,16 @@ error.
 
 ## Scripts
 
-- `npm run dev` — run the TypeScript server directly with `tsx`
+- `npm run dev` — run the in-memory TypeScript server directly with `tsx`
+- `npm run db:up` — start local Postgres with Docker Compose
+- `npm run db:seed` — seed Postgres with synthetic relational data
+- `npm run db:dev` — run the Postgres-backed server on port 4001
 - `npm run typecheck` — TypeScript check without emitting
 - `npm run build` — compile to `dist/`
 - `npm start` — run compiled server
 - `npm run smoke` — quick endpoint/security sanity check
-- `npm run bench` — run autocannon comparisons
+- `npm run bench` — run in-memory autocannon comparisons
+- `npm run bench:db` — run Postgres-backed autocannon comparisons
 - `npm run bench:matrix` — sweep nested fan-out sizes and write a report
 - `npm run cache` — demonstrate REST ETag vs GraphQL POST no-store behavior
 
@@ -260,11 +329,17 @@ error.
 
 ```text
 src/data.ts            deterministic in-memory store + counters
-src/graphqlSchema.ts   GraphQL schema, resolvers, DataLoader wiring
+src/db.ts              Postgres connection pool
+src/pgStore.ts         Postgres-backed store + counters
+src/graphqlSchema.ts   in-memory GraphQL schema and DataLoader wiring
+src/pgGraphqlSchema.ts Postgres GraphQL schema and DataLoader wiring
 src/httpCache.ts       small JSON + ETag helper for REST/RPC responses
 src/queries.ts         benchmark GraphQL query strings
-src/server.ts          Express server and REST/RPC/GraphQL routes
-scripts/bench.ts       autocannon benchmark runner
+src/server.ts          in-memory Express REST/RPC/GraphQL routes
+src/dbServer.ts        Postgres-backed Express REST/RPC/GraphQL routes
+scripts/bench.ts       in-memory autocannon benchmark runner
+scripts/bench-db.ts    Postgres autocannon benchmark runner
+scripts/seed-postgres.ts Postgres schema/data generator
 scripts/matrix.ts      multi-scenario nested benchmark matrix
 scripts/cache-demo.ts  REST ETag vs GraphQL POST cache demo
 scripts/smoke.ts       quick sanity/security check
